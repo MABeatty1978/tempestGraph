@@ -55,7 +55,7 @@ try:
                 break
             except Exception as e:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
-                logger.error("Excpetion on line " + str(exc_tb.tb_lineno) + ": " + str(e))
+                logger.error("Exception on line " + str(exc_tb.tb_lineno) + ": " + str(e))
                 ws.close()
                 time.sleep(1)
                 break
@@ -116,7 +116,7 @@ try:
                     logger.debug("Chart written")
             except Exception as e:
                 xc_type, exc_obj, exc_tb = sys.exc_info()
-                logger.error("Excpetion on line " + str(exc_tb.tb_lineno) + ": " + str(e))
+                logger.error("Exception on line " + str(exc_tb.tb_lineno) + ": " + str(e))
                 ws.close()
                 time.sleep(1)
                 break
@@ -127,4 +127,4 @@ except KeyboardInterrupt:
     exit()
 except Exception as e:
     exc_type, exc_obj, exc_tb = sys.exc_info()
-    logger.critical("Excpetion on line " + str(exc_tb.tb_lineno) + ": " + str(e))
+    logger.critical("Exception on line " + str(exc_tb.tb_lineno) + ": " + str(e))
