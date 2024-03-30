@@ -20,6 +20,7 @@ load_dotenv()
 token = os.getenv('TOKEN')
 station =  os.getenv('STATION_ID')
 server = os.getenv('SERVER_DIR')
+logfile = os.getenv('LOGFILE')
 xAxis=[]
 temp=[]
 wind=[]
@@ -27,7 +28,7 @@ precipchance=[]
 baro=[]
 
 logger = logging.getLogger(__name__)
-handler = TimedRotatingFileHandler(filename='/home/mab/Development/tempestGraph/log/forecasts.log', when='midnight', interval=1, backupCount=10, encoding='utf-8', delay=False)
+handler = TimedRotatingFileHandler(filename=logfile, when='midnight', interval=1, backupCount=10, encoding='utf-8', delay=False)
 formatter = Formatter(fmt='%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
