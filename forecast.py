@@ -1,17 +1,25 @@
 #!/usr/bin/python3
 
 import requests
-import config
 import logging
+import os
+import argparse
 from logging.handlers import TimedRotatingFileHandler
 from logging import Formatter
 from bokeh.plotting import figure, output_file, save
 from bokeh.models import Range1d, LinearAxis
 from bokeh.palettes import Category10
 from datetime import datetime
+from dotenv import load_dotenv
 
-token = config.WF_TOKEN
-station =  config.WF_STATION_ID
+parser = argparse.ArgumentParser()
+parser.add_argument("--debug", help="Turn on debug logging", action="store_true")
+args = parser.parse_args()
+
+load_dotenv()
+token = os.getenv('TOKEN')
+station =  os.getenv('STATION_ID')
+server = os.getenv('SERVER_DIR')
 xAxis=[]
 temp=[]
 wind=[]
@@ -19,14 +27,19 @@ precipchance=[]
 baro=[]
 
 logger = logging.getLogger(__name__)
-handler = TimedRotatingFileHandler(filename='/home/mab/Development/mqttTempest/log/forecasts.log', when='midnight', interval=1, backupCount=10, encoding='utf-8', delay=False)
+handler = TimedRotatingFileHandler(filename='/home/mab/Development/tempestGraph/log/forecasts.log', when='midnight', interval=1, backupCount=10, encoding='utf-8', delay=False)
 formatter = Formatter(fmt='%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+
+if args.debug:
+    logger.setLevel(logging.DEBUG)
+else:
+    logger.setLevel(logging.INFO)
 
 logger.info("Connecting to weatherflow")
 URL = "https://swd.weatherflow.com/swd/rest/better_forecast?station_id={}&units_pressure=inhg&units_temp=f&units_wind=mph&units_precip=in&units_distance=mi&token={}".format(station, token)
+logger.debug("URL: " + URL)
 r = requests.get(url = URL)
 logger.info("Conection returned with status code: " + str(r.status_code))
 d = r.json()
@@ -38,6 +51,7 @@ blue=Category10[4][0]
 orange=Category10[4][1]
 green=Category10[4][2]
 red=Category10[4][3]
+fname = server + "forecast.html"
 
 for f in d['forecast']['hourly']:
     if f['local_day'] < startday:
@@ -60,7 +74,7 @@ logger.debug(wind)
 logger.debug(precipchance)
 logger.debug(baro)
 
-output_file(filename="/var/www/html/forecast.html", title="10 Day Hourly Forecast")
+output_file(filename=fname, title="10 Day Hourly Forecast")
 p = figure(title="Forecast", width=1500, x_axis_type='datetime')
 p.extra_y_ranges['wind'] = Range1d(min(wind), max(wind))
 p.extra_y_ranges['precipchance'] = Range1d(0,100)
