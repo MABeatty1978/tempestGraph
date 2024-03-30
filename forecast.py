@@ -75,16 +75,16 @@ logger.debug(precipchance)
 logger.debug(baro)
 
 output_file(filename=fname, title="10 Day Hourly Forecast")
-p = figure(title="Forecast", width=1500, x_axis_type='datetime')
+p = figure(title="Forecast " + str(datetime.now()), width=1500, x_axis_type='datetime')
 p.extra_y_ranges['wind'] = Range1d(min(wind), max(wind))
 p.extra_y_ranges['precipchance'] = Range1d(0,100)
-p.extra_y_ranges['baro'] = Range1d (29, 31)
+p.extra_y_ranges['baro'] = Range1d (min(baro)-.1, max(baro)+.1)
 
 p.line(y=temp, x=xAxis)
 p.line(y=wind, x=xAxis, line_color=green, y_range_name = 'wind')
 p.yaxis.axis_label = 'Temp'
 p.yaxis.axis_label_text_color = blue
-p.xaxis.ticker.desired_num_ticks =48 
+p.xaxis.ticker.desired_num_ticks =72 
 p.xaxis.major_label_orientation = 'vertical' 
 ax2 = LinearAxis(y_range_name='wind', axis_label="Wind Speed")
 ax2.axis_label_text_color=green
