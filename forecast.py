@@ -9,7 +9,6 @@ from logging import Formatter
 from bokeh.plotting import figure, output_file, save
 from bokeh.layouts import column
 from bokeh.models import Range1d, LinearAxis
-#from bokeh.palettes import Category20c, Category20b
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -123,32 +122,42 @@ for f in d['forecast']['hourly']:
 
 
 output_file(filename=fname, title="10 Day Hourly Forecast")
-p = figure(title="Forecast " + str(datetime.now()), width=1500, x_axis_type='datetime')
-p.extra_y_ranges['baro'] = Range1d (min(baro)-.1, max(baro)+.1)
-p.extra_y_ranges['feels'] = Range1d (min(temp), max(temp))
-p.extra_y_ranges['humidity'] = Range1d (0,100)
-p.extra_y_ranges['uv'] = Range1d(0,max(uv))
-p.line(y=temp, x=xAxis)
-p.yaxis.axis_label = 'Temp'
-p.yaxis.axis_label_text_color = 'blue'
-p.xaxis.ticker.desired_num_ticks =72 
-p.xaxis.major_label_orientation = 'vertical' 
-p.line(y=baro, x=xAxis, y_range_name='baro', line_color='purple')
-ax2 = LinearAxis(y_range_name='baro', axis_label="Pressure")
-ax2.axis_label_text_color='purple'
-p.add_layout(ax2, 'left')
-p.line(x=xAxis, y=feelslike, y_range_name='feels', line_color='green')
+temps = figure(title="Forecast " + str(datetime.now()), width=1500, x_axis_type='datetime')
+temps.extra_y_ranges['feels'] = Range1d (min(temp), max(temp))
+temps.y_range = Range1d(min(temp), max(temp))
+#Temp
+temps.line(y=temp, x=xAxis)
+temps.yaxis.axis_label = 'Temp'
+temps.yaxis.axis_label_text_color = 'blue'
+temps.xaxis.ticker.desired_num_ticks =72 
+temps.xaxis.major_label_orientation = 'vertical' 
+#Feels Like
+temps.line(x=xAxis, y=feelslike, y_range_name='feels', line_color='green')
 ax3 = LinearAxis(y_range_name='feels', axis_label="Feels Like")
 ax3.axis_label_text_color='green'
-p.add_layout(ax3, 'left')
-p.line(x=xAxis, y=uv, y_range_name='uv', line_color='red')
+temps.add_layout(ax3, 'left')
+
+hpu = figure(title="Humidity, Pressure, and UV", width=1500, x_axis_type='datetime')
+hpu.extra_y_ranges['baro'] = Range1d(min(baro)-.1, max(baro)+.1)
+hpu.extra_y_ranges['humidity'] = Range1d(0,100)
+hpu.extra_y_ranges['uv'] = Range1d(0,max(uv))
+
+hpu.line(x=xAxis, y=uv, y_range_name='uv', line_color='red')
 ax4 = LinearAxis(y_range_name='uv', axis_label="UV")
 ax4.axis_label_text_color='red'
-p.add_layout(ax4, 'right')
-p.line(x=xAxis, y=humidity, y_range_name='humidity', line_color='black')
+hpu.add_layout(ax4, 'left')
+
+hpu.line(x=xAxis, y=humidity, y_range_name='humidity', line_color='black')
 ax5 = LinearAxis(y_range_name='humidity', axis_label='Humidity')
 ax5.axis_label_text_color='black'
-p.add_layout(ax5, 'right')
+hpu.add_layout(ax5, 'left')
+
+
+hpu.line(y=baro, x=xAxis, y_range_name='baro', line_color='green')
+ax2 = LinearAxis(y_range_name='baro', axis_label="Pressure")
+ax2.axis_label_text_color='green'
+hpu.add_layout(ax2, 'left')
+
 
 conditions = figure(title="Precipitation", width=1500, x_axis_type='datetime')
 conditions.extra_y_ranges['precip'] = Range1d(0, max(precip))
@@ -181,5 +190,5 @@ windavgaxis = LinearAxis(y_range_name='windavg', axis_label="Wind Average")
 windavgaxis.axis_label_text_color = 'green'
 windgraph.add_layout(windavgaxis, 'left')
 windgraph.add_layout(winddiraxis, 'left')
-save(column(p, conditions, windgraph))
+save(column(temps, conditions, windgraph, hpu))
 logger.info("Chart Written")
