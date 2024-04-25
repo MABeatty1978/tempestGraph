@@ -92,7 +92,6 @@ for f in d['forecast']['hourly']:
     windavg.append(f['wind_avg'])
     winddir.append(f['wind_direction'])
     baro.append(f['sea_level_pressure'])
-    #conditions.append(f['conditions'])
     precip.append(f['precip'])
     humidity.append(f['relative_humidity'])
     feelslike.append(f['feels_like'])
