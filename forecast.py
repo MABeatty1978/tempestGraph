@@ -8,7 +8,7 @@ from logging.handlers import TimedRotatingFileHandler
 from logging import Formatter
 from bokeh.plotting import figure, output_file, save
 from bokeh.layouts import column
-from bokeh.models import Range1d, LinearAxis
+from bokeh.models import Range1d, LinearAxis, ColumnDataSource
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -92,7 +92,7 @@ for f in d['forecast']['hourly']:
     windavg.append(f['wind_avg'])
     winddir.append(f['wind_direction'])
     baro.append(f['sea_level_pressure'])
-    conditions.append(f['conditions'])
+    #conditions.append(f['conditions'])
     precip.append(f['precip'])
     humidity.append(f['relative_humidity'])
     feelslike.append(f['feels_like'])
@@ -100,47 +100,57 @@ for f in d['forecast']['hourly']:
 
     #Set sky conditions bar colors
     if f['conditions'] == "Thunderstorms Possible":
+        conditions.append(f['conditions'])
         condColor.append(stormspossible)
     elif f['conditions'] == "Thunderstorms Likely":
+        conditions.append(f['conditions'])
         condColor.append(stormslikely)
     elif f['conditions'] == "Very Light Rain" or f['conditions'] == "Light Rain" or f['conditions'] == "Partly Cloudy" or f['conditions'] == "Cloudy":
+        conditions.append("Light Rain")
         condColor.append(lightRain)
     elif f['conditions'] == "Rain Likely" or f['conditions'] == "Rain Possible" or f['conditions'] == "Moderate Rain":
+        conditions.append("Moderate Rain")
         condColor.append(rain)
     elif f['conditions'] == "Heavy Rain" or f['conditions'] == "Extreme Rain":
+        conditions.append("Heavy Rain")
         condColor.append(heavyRain)
     elif f['conditions'] == 'Snow Possible':
+        conditions.append(f['conditions'])
         condColor.append(snowPossible)
     elif f['conditions'] == 'Snow Likely':
+        conditions.append(f['conditions'])
         condColor.append(snowLikely)
     elif f['conditions'] == 'Wintery Mix Possible':
         condColor.append(winterymixpossible)
+        conditions.append(f['conditions'])
     elif f['conditions'] == 'Wintery Mix Likely':
         condColor.append(winterymixlikely)
+        conditions.append(f['conditions'])
+    elif f['conditions'] == "Clear":
+        condColor.append('white')
+        conditions.append(f['conditions'])
     else:
-        condColor.append('red')
+        logger.warn("Unknown Condition: " + f['conditions'])
+        conditions.append("Unknown State")
+        condColor.append('purple')
 
 
 output_file(filename=fname, title="10 Day Hourly Forecast")
 temps = figure(title="Forecast " + str(datetime.now()), width=1500, x_axis_type='datetime')
-temps.extra_y_ranges['feels'] = Range1d (min(temp), max(temp))
-temps.y_range = Range1d(min(temp), max(temp))
 #Temp
-temps.line(y=temp, x=xAxis)
-temps.yaxis.axis_label = 'Temp'
-temps.yaxis.axis_label_text_color = 'blue'
+temps.line(y=temp, x=xAxis, line_color='blue', legend_label="Temperature")
+temps.yaxis.axis_label = 'Degrees'
 temps.xaxis.ticker.desired_num_ticks =72 
 temps.xaxis.major_label_orientation = 'vertical' 
 #Feels Like
-temps.line(x=xAxis, y=feelslike, y_range_name='feels', line_color='green')
-ax3 = LinearAxis(y_range_name='feels', axis_label="Feels Like")
-ax3.axis_label_text_color='green'
-temps.add_layout(ax3, 'left')
+temps.line(x=xAxis, y=feelslike, line_color='green', legend_label="Feels Like")
 
-hpu = figure(title="Humidity, Pressure, and UV", width=1500, x_axis_type='datetime')
-hpu.extra_y_ranges['baro'] = Range1d(min(baro)-.1, max(baro)+.1)
+hpu = figure(title="Humidity, Pressure, and UV", y_axis_label='InHg', width=1500, x_axis_type='datetime')
+hpu.yaxis.axis_label_text_color = 'green'
+hpu.y_range = Range1d(min(baro)-.1, max(baro)+.1)
 hpu.extra_y_ranges['humidity'] = Range1d(0,100)
 hpu.extra_y_ranges['uv'] = Range1d(0,max(uv))
+hpu.line(y=baro, x=xAxis, line_color='green')
 
 hpu.line(x=xAxis, y=uv, y_range_name='uv', line_color='red')
 ax4 = LinearAxis(y_range_name='uv', axis_label="UV")
@@ -152,18 +162,14 @@ ax5 = LinearAxis(y_range_name='humidity', axis_label='Humidity')
 ax5.axis_label_text_color='black'
 hpu.add_layout(ax5, 'left')
 
-
-hpu.line(y=baro, x=xAxis, y_range_name='baro', line_color='green')
-ax2 = LinearAxis(y_range_name='baro', axis_label="Pressure")
-ax2.axis_label_text_color='green'
-hpu.add_layout(ax2, 'left')
-
+source = ColumnDataSource(dict(x=xAxis, y=precipchance, color=condColor, label=conditions))
 
 conditions = figure(title="Precipitation", width=1500, x_axis_type='datetime')
 conditions.extra_y_ranges['precip'] = Range1d(0, max(precip))
 conditions.y_range = Range1d(0, 100)
 conditions.yaxis.axis_label="Chance of Precipitation/Type"
-conditions.vbar(x=xAxis, top=precipchance, width=.5, line_width=5, color=condColor)
+conditions.vbar(x='x', top='y', color='color', legend_group='label', source = source, width=.5, line_width=5)
+#conditions.vbar(x=xAxis, top=precipchance, width=.5, line_width=5, color=condColor)
 conditions.line(x=xAxis, y=precip, y_range_name='precip', color='blue')
 conditionsax2 = LinearAxis(y_range_name='precip', axis_label="Rain Rate Per Hour")
 conditionsax2.axis_label_text_color='blue'
