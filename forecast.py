@@ -4,6 +4,7 @@ import requests
 import logging
 import os
 import argparse
+from precipcolors import PrecipColors
 from logging.handlers import TimedRotatingFileHandler
 from logging import Formatter
 from bokeh.plotting import figure, output_file, save
@@ -15,7 +16,7 @@ from dotenv import load_dotenv
 parser = argparse.ArgumentParser()
 parser.add_argument("--debug", help="Turn on debug logging", action="store_true")
 args = parser.parse_args()
-
+d=""
 load_dotenv()
 token = os.getenv('TOKEN')
 station =  os.getenv('STATION_ID')
@@ -45,15 +46,21 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 if args.debug:
     logger.setLevel(logging.DEBUG)
+    logger.debug("forecast.py started in debug")
 else:
     logger.setLevel(logging.INFO)
 
 #Connect to API
-logger.info("Connecting to weatherflow")
+logger.info("Connecting to WeatherFlow")
 URL = "https://swd.weatherflow.com/swd/rest/better_forecast?station_id={}&units_pressure=inhg&units_temp=f&units_wind=mph&units_precip=in&units_distance=mi&token={}".format(station, token)
 logger.debug("URL: " + URL)
+
 r = requests.get(url = URL)
-logger.info("Conection returned with status code: " + str(r.status_code))
+rc = r.status_code
+if rc != 200:
+    logger.error("Connection returned with status code: " + str(rc))
+    quit()
+logger.info("Data received")
 d = r.json()
 
 #Variables and logic to handle rolling the month
@@ -61,19 +68,6 @@ month = datetime.now().month
 year = datetime.now().year
 startday = d['forecast']['hourly'][0]['local_day']
 monthrolled=False
-
-
-#Conditions color definitions
-rain='mediumseagreen'
-lightRain = 'palegreen'
-heavyRain = 'darkgreen'
-stormslikely='darkred'
-stormspossible='red'
-foggy='silver'
-snowpossible='skyblue'
-snowlikely='blue'
-winterymixpossible='magenta'
-winterymixlikely='darkorchid'
 
 fname = server + "forecast.html"
 
@@ -88,6 +82,7 @@ for f in d['forecast']['hourly']:
     xAxis.append(datetime(year, month, f['local_day'], f['local_hour']))
     temp.append(f['air_temperature'])
     precipchance.append(f['precip_probability'])
+    conditions.append(f['conditions'])
     windgust.append(f['wind_gust'])
     windavg.append(f['wind_avg'])
     winddir.append(f['wind_direction'])
@@ -96,43 +91,11 @@ for f in d['forecast']['hourly']:
     humidity.append(f['relative_humidity'])
     feelslike.append(f['feels_like'])
     uv.append(f['uv'])
-
-    #Set sky conditions bar colors
-    if f['conditions'] == "Thunderstorms Possible":
-        conditions.append(f['conditions'])
-        condColor.append(stormspossible)
-    elif f['conditions'] == "Thunderstorms Likely":
-        conditions.append(f['conditions'])
-        condColor.append(stormslikely)
-    elif f['conditions'] == "Very Light Rain" or f['conditions'] == "Light Rain" or f['conditions'] == "Partly Cloudy" or f['conditions'] == "Cloudy":
-        conditions.append("Light Rain")
-        condColor.append(lightRain)
-    elif f['conditions'] == "Rain Likely" or f['conditions'] == "Rain Possible" or f['conditions'] == "Moderate Rain":
-        conditions.append("Moderate Rain")
-        condColor.append(rain)
-    elif f['conditions'] == "Heavy Rain" or f['conditions'] == "Extreme Rain":
-        conditions.append("Heavy Rain")
-        condColor.append(heavyRain)
-    elif f['conditions'] == 'Snow Possible':
-        conditions.append(f['conditions'])
-        condColor.append(snowPossible)
-    elif f['conditions'] == 'Snow Likely':
-        conditions.append(f['conditions'])
-        condColor.append(snowLikely)
-    elif f['conditions'] == 'Wintery Mix Possible':
-        condColor.append(winterymixpossible)
-        conditions.append(f['conditions'])
-    elif f['conditions'] == 'Wintery Mix Likely':
-        condColor.append(winterymixlikely)
-        conditions.append(f['conditions'])
-    elif f['conditions'] == "Clear":
-        condColor.append('white')
-        conditions.append(f['conditions'])
-    else:
-        logger.warn("Unknown Condition: " + f['conditions'])
-        conditions.append("Unknown State")
-        condColor.append('purple')
-
+    try:
+        condColor.append(PrecipColors.getColor(f['conditions']))
+    except Exception as e:
+        logger.warning(e)
+        condColor.append('black')
 
 output_file(filename=fname, title="10 Day Hourly Forecast")
 temps = figure(title="Forecast " + str(datetime.now()), width=1500, x_axis_type='datetime')
