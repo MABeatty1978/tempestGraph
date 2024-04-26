@@ -16,7 +16,6 @@ from dotenv import load_dotenv
 parser = argparse.ArgumentParser()
 parser.add_argument("--debug", help="Turn on debug logging", action="store_true")
 args = parser.parse_args()
-d=""
 load_dotenv()
 token = os.getenv('TOKEN')
 station =  os.getenv('STATION_ID')
