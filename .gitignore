@@ -1,4 +1,4 @@
 .env
 *.swp
 *.log*
-
+__pycache__/
