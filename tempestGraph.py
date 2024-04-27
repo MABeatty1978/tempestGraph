@@ -91,7 +91,7 @@ try:
                     feelsLike = (d['summary']['feels_like'] * (9/5)) + 32
                     temp = (d['obs'][0][7] * (9/5)) + 32
                     pressure = d['obs'][0][6]
-                    humidity = d['obs'][0][7]
+                    humidity = d['obs'][0][8]
                     lux=d['obs'][0][9]
                     uv=d['obs'][0][10]
                     radiation=d['obs'][0][11]
