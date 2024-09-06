@@ -9,7 +9,8 @@ from logging.handlers import TimedRotatingFileHandler
 from logging import Formatter
 from bokeh.plotting import figure, output_file, save
 from bokeh.layouts import column
-from bokeh.models import Range1d, LinearAxis, ColumnDataSource
+from bokeh.models import Range1d, LinearAxis, ColumnDataSource, Legend, DatetimeTickFormatter
+from bokeh.io import export_png
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -24,6 +25,7 @@ logfile = os.getenv('LOGFILE')
 
 #Axis arrays
 xAxis=[]
+dayXaxis=[]
 temp=[]
 feelslike=[]
 uv=[]
@@ -32,10 +34,14 @@ windgust=[]
 windavg=[]
 winddir=[]
 precipchance=[]
+precipchanceDay=[]
 baro=[]
 condColor=[]
 conditions=[]
+conditionsDay=[]
 precip=[]
+tempDay=[]
+condColorDay=[]
 
 #Setup Logging
 logger = logging.getLogger(__name__)
@@ -95,6 +101,18 @@ for f in d['forecast']['hourly']:
     except Exception as e:
         logger.warning(e)
         condColor.append('black')
+#24 hour forecast
+for i in range(0,23):
+    conditionsDay.append(conditions[i])
+    tempDay.append(temp[i])
+    dayXaxis.append(xAxis[i])
+    precipchanceDay.append(precipchance[i])
+    try:
+        condColorDay.append(PrecipColors.getColor(conditions[i]))
+    except Exception as e:
+        logger.warning(e)
+        condColorDay.append('black')
+
 
 output_file(filename=fname, title="10 Day Hourly Forecast")
 temps = figure(title="Forecast " + str(datetime.now()), width=1500, x_axis_type='datetime')
@@ -125,18 +143,34 @@ hpu.add_layout(ax5, 'left')
 
 source = ColumnDataSource(dict(x=xAxis, y=precipchance, color=condColor, label=conditions))
 
-conditions = figure(title="Precipitation", width=1500, x_axis_type='datetime')
+conditions = figure(title="10 Day Hourly Forecast", width=1500, x_axis_type='datetime')
 conditions.extra_y_ranges['precip'] = Range1d(0, max(precip))
 conditions.y_range = Range1d(0, 100)
 conditions.yaxis.axis_label="Chance of Precipitation/Type"
 conditions.vbar(x='x', top='y', color='color', legend_group='label', source = source, width=.5, line_width=5)
-#conditions.vbar(x=xAxis, top=precipchance, width=.5, line_width=5, color=condColor)
 conditions.line(x=xAxis, y=precip, y_range_name='precip', color='blue')
 conditionsax2 = LinearAxis(y_range_name='precip', axis_label="Rain Rate Per Hour")
 conditionsax2.axis_label_text_color='blue'
 conditions.add_layout(conditionsax2, 'left')
 conditions.xaxis.ticker.desired_num_ticks=72
 conditions.xaxis.major_label_orientation = 'vertical'
+
+sourceDay = ColumnDataSource(dict(x=dayXaxis, y=precipchanceDay, color=condColorDay, label=conditionsDay))
+conditionsDay = figure(title="24 Hour Forecast " + str(datetime.now()), width=1000, x_axis_type='datetime')
+conditionsDay.extra_y_ranges['tempDay'] = Range1d(min(tempDay)-5, max(tempDay)+5)
+conditionsDay.y_range = Range1d(0, 100)
+conditionsDay.yaxis.axis_label="Chance of Precipitation/Type"
+conditionsDay.vbar(x='x', top='y', color='color', legend_group='label', source=sourceDay, line_width=20)
+conditionsDay.line(x=dayXaxis, y=tempDay, y_range_name='tempDay', color='blue')
+conditionsDayax2 = LinearAxis(y_range_name='tempDay', axis_label="Temperature")
+conditionsDayax2.axis_label_text_color='blue'
+conditionsDay.add_layout(conditionsDayax2, 'left')
+conditionsDay.xaxis.ticker.desired_num_ticks=24
+conditionsDay.xaxis.major_label_orientation = 'vertical'
+conditionsDay.xaxis.formatter=DatetimeTickFormatter(hours="%l %P")
+conditionsDay.legend.glyph_width = 1
+conditionsDay.legend.glyph_height = 1
+conditionsDay.legend.label_standoff=25
 
 windgraph = figure(title="Wind", width=1500, x_axis_type='datetime')
 windgraph.yaxis.axis_label="Wind Gust"
@@ -157,5 +191,15 @@ windavgaxis = LinearAxis(y_range_name='windavg', axis_label="Wind Average")
 windavgaxis.axis_label_text_color = 'green'
 windgraph.add_layout(windavgaxis, 'left')
 windgraph.add_layout(winddiraxis, 'left')
-save(column(temps, conditions, windgraph, hpu))
-logger.info("Chart Written")
+save(column(temps, conditions, conditionsDay, windgraph, hpu))
+logger.info("Chart written")
+export_png(temps, filename=server+"temps.png")
+logger.info("temps.png written")
+export_png(conditions, filename=server+"forecastg.png")
+logger.info("forecastg.png written")
+export_png(windgraph, filename=server+"winds.png")
+logger.info("winds.png written")
+export_png(hpu, filename=server+"hpu.png")
+logger.info("hpu.png written")
+export_png(conditionsDay, filename=server+"conditionsDay.png")
+logger.info("conditionsDay.png written")
