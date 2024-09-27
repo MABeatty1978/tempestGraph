@@ -33,6 +33,8 @@ humidity=[]
 windgust=[]
 windavg=[]
 winddir=[]
+windday=[]
+winddirday=[]
 precipchance=[]
 precipchanceDay=[]
 baro=[]
@@ -107,6 +109,8 @@ for i in range(0,23):
     tempDay.append(temp[i])
     dayXaxis.append(xAxis[i])
     precipchanceDay.append(precipchance[i])
+    windday.append(windgust[i])
+    winddirday.append(winddir[i])
     try:
         condColorDay.append(PrecipColors.getColor(conditions[i]))
     except Exception as e:
@@ -158,13 +162,23 @@ conditions.xaxis.major_label_orientation = 'vertical'
 sourceDay = ColumnDataSource(dict(x=dayXaxis, y=precipchanceDay, color=condColorDay, label=conditionsDay))
 conditionsDay = figure(title="24 Hour Forecast " + str(datetime.now()), width=1000, x_axis_type='datetime')
 conditionsDay.extra_y_ranges['tempDay'] = Range1d(min(tempDay)-5, max(tempDay)+5)
+conditionsDay.extra_y_ranges['windSpeed'] = Range1d(0, max(windday)+5)
+conditionsDay.extra_y_ranges['windDir'] = Range1d(0, 365)
 conditionsDay.y_range = Range1d(0, 100)
 conditionsDay.yaxis.axis_label="Chance of Precipitation/Type"
 conditionsDay.vbar(x='x', top='y', color='color', legend_group='label', source=sourceDay, line_width=20)
 conditionsDay.line(x=dayXaxis, y=tempDay, y_range_name='tempDay', color='blue')
 conditionsDayax2 = LinearAxis(y_range_name='tempDay', axis_label="Temperature")
 conditionsDayax2.axis_label_text_color='blue'
+conditionsDayGust = LinearAxis(y_range_name='windSpeed', axis_label="Wind Gust")
+conditionsDayGust.axis_label_text_color='red'
+conditionsDayDir = LinearAxis(y_range_name='windDir', axis_label="Wind Direction (degrees)")
+conditionsDayDir.axis_label_text_color='red'
+conditionsDay.line(x=dayXaxis, y=windday, y_range_name='windSpeed', color='red')
+conditionsDay.scatter(x=dayXaxis, y=winddirday, y_range_name='windDir', color='red')
 conditionsDay.add_layout(conditionsDayax2, 'left')
+conditionsDay.add_layout(conditionsDayGust, 'right')
+conditionsDay.add_layout(conditionsDayDir, 'right')
 conditionsDay.xaxis.ticker.desired_num_ticks=24
 conditionsDay.xaxis.major_label_orientation = 'vertical'
 conditionsDay.xaxis.formatter=DatetimeTickFormatter(hours="%l %P")
